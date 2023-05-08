@@ -53,7 +53,9 @@ class TaskListViewController: UIViewController {
     }
     
     @objc private func addButtonPressed() {
-        
+        let vc = AddNewTaskViewController()
+        let navigationVC = UINavigationController(rootViewController: vc)
+        present(navigationVC, animated:true)
     }
 }
 
