@@ -19,10 +19,15 @@ class TaskListViewController: UIViewController {
         setupContraints()
     }
     
+//    MARK: - Methods
     private func setupUI() {
         view.backgroundColor = .systemBackground
         view.addSubview(filterSegmentedControl)
         view.addSubview(tableListView)
+        
+        navigationItem.title = "YourList"
+        navigationController?.navigationBar.prefersLargeTitles = true
+        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addButtonPressed))
         
         filterSegmentedControl.selectedSegmentIndex = 0
         filterSegmentedControl.translatesAutoresizingMaskIntoConstraints = false
@@ -46,8 +51,13 @@ class TaskListViewController: UIViewController {
             tableListView.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor),
         ])
     }
+    
+    @objc private func addButtonPressed() {
+        
+    }
 }
 
+// MARK: -  UITableViewDelegate, UITableViewDataSource
 extension TaskListViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return 1
