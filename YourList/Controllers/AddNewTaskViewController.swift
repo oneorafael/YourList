@@ -7,8 +7,13 @@
 
 import Foundation
 import UIKit
+import RxSwift
 
 class AddNewTaskViewController: UIViewController {
+    
+    let taskSubject = PublishSubject<Task>()
+    var taskObservable : Observable<Task> { return taskSubject.asObservable()}
+    
     lazy var filterSegmentedControl = UISegmentedControl(items: ["High","Medium", "Low"])
     lazy var taskTextField = UITextField()
     
@@ -51,6 +56,11 @@ class AddNewTaskViewController: UIViewController {
     }
     
     @objc private func saveButtonPressed() {
+        guard let priority = Priority(rawValue: filterSegmentedControl.selectedSegmentIndex),
+              let title = taskTextField.text
+        else { return }
+        let task = Task(title: title, priority: priority)
+        taskSubject.onNext(task)
         dismiss(animated: true)
     }
 }

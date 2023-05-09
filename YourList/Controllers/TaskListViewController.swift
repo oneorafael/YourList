@@ -7,10 +7,18 @@
 
 import Foundation
 import UIKit
+import RxSwift
+import RxRelay
 
 class TaskListViewController: UIViewController {
-    lazy var filterSegmentedControl = UISegmentedControl(items: ["All","High","Medium", "Low"])
-    lazy var tableListView = UITableView()
+    
+    private let disposeBag = DisposeBag()
+    private var tasks = BehaviorRelay(value: [Task]())
+    private var filteredTasks = [Task]()
+    
+    lazy private var filterSegmentedControl = UISegmentedControl(items: ["All","High","Medium", "Low"])
+    lazy private var tableListView = UITableView()
+    
     
 //    MARK: - Lifecycle
     override func viewDidLoad() {
@@ -31,6 +39,7 @@ class TaskListViewController: UIViewController {
         
         filterSegmentedControl.selectedSegmentIndex = 0
         filterSegmentedControl.translatesAutoresizingMaskIntoConstraints = false
+        filterSegmentedControl.addTarget(self, action: #selector(segmentedControlHasChanged), for: .valueChanged)
         
         tableListView.translatesAutoresizingMaskIntoConstraints = false
         tableListView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
@@ -52,9 +61,42 @@ class TaskListViewController: UIViewController {
         ])
     }
     
+    private func filterTasks(by priority: Priority?) {
+        if priority == nil {
+            self.filteredTasks = tasks.value
+            self.updateTableView()
+        } else {
+            self.tasks.map { tasks in
+                return tasks.filter { $0.priority == priority!}
+            }.subscribe(onNext: {tasks in
+                self.filteredTasks = tasks
+                self.updateTableView()
+            }).disposed(by: disposeBag)
+        }
+    }
+    
+    private func updateTableView() {
+        DispatchQueue.main.async {
+            self.tableListView.reloadData()
+        }
+    }
+    
+    @objc private func segmentedControlHasChanged() {
+        let priority = Priority(rawValue: filterSegmentedControl.selectedSegmentIndex - 1)
+        filterTasks(by: priority)
+    }
+    
     @objc private func addButtonPressed() {
         let vc = AddNewTaskViewController()
         let navigationVC = UINavigationController(rootViewController: vc)
+        let priority = Priority(rawValue: self.filterSegmentedControl.selectedSegmentIndex - 1)
+        vc.taskObservable.subscribe(onNext: { task in
+            var exitingTasks = self.tasks.value
+            exitingTasks.append(task)
+            self.tasks.accept(exitingTasks)
+            self.filterTasks(by: priority)
+        }).disposed(by: disposeBag)
+        
         present(navigationVC, animated:true)
     }
 }
@@ -62,12 +104,13 @@ class TaskListViewController: UIViewController {
 // MARK: -  UITableViewDelegate, UITableViewDataSource
 extension TaskListViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 1
+        return filteredTasks.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        cell.textLabel?.text =  "TEST"
+        let task = filteredTasks[indexPath.row]
+        cell.textLabel?.text =  task.title
         return cell
     }
 }
